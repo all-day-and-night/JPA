@@ -40,3 +40,40 @@ JPA
 * 테이블 설계
 
 ![image](https://user-images.githubusercontent.com/94096054/150072140-e667dc5f-dd7a-403c-85e3-a9da52d7c635.png)
+
+
+
+
+
+
+
+## Question
+
+* @Entity
+
+* @Embedded and @Embedable
+
+* @OneToOne @OneToMany @ManyToOne @ManyToMany
+
+* @JoinTable
+
+
+## 실무 팁
+
+* @Getter는 열어놓고 @Setter는 닫아놓자
+
+* @ManyToMany를 지양
+
+> 중간 Entity를 생성하여 @OneToMany @ManyToOne으로 매핑 
+
+* 값 타입 변경 불가능하게 Entity(Class) 설계
+
+> @Setter를 제거하고 생성자에서 값을 모두 초기화해서 변경 불가능한 클래스 구현
+
+> Entity나 임베디드 타입(@Embeddable)은 protected로 설정 
+
+> JPA 구현 라이브러리가 객체를 생성할 때 리플랙션 같은 기술을 사용할 수 있도록 지원
+
+
+
+
