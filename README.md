@@ -34,6 +34,7 @@ JPA
 ### 도메인 모델과 테이블 설계
 
 * 도메인 모델
+
 ![image](https://user-images.githubusercontent.com/94096054/150072061-092b5f2e-3707-41cf-9dad-2ff2b0a9d0e9.png)
 
 * 테이블 설계
