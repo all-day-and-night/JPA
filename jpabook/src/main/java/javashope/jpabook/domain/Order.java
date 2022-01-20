@@ -16,7 +16,10 @@ public class Order {
     @Column(name = "order_id")
     private Long id;
 
-    @ManyToOne
+    /**
+     * 다른 Entity와 연관관계를 갖고 있을 때 LAZY 설정
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="member_id")
     private Member member;
 
