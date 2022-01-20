@@ -57,6 +57,10 @@ JPA
 
 * @JoinTable
 
+* @Test(expected = 예외처리클래스)
+
+> 테스트에서 발생한 예외처리 클래스가 expected로 지정할 경우 test는 성공한다.
+
 
 ## 실무 팁
 
