@@ -1,5 +1,8 @@
+/*
 package javashope.jpabook;
 
+import javashope.jpabook.domain.Member;
+import javashope.jpabook.repository.MemberRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 public class MemberRepositoryTest {
 
-    @Autowired MemberRepository memberRepository;
+    @Autowired
+    MemberRepository memberRepository;
 
 
     @Test
@@ -36,3 +40,5 @@ public class MemberRepositoryTest {
 
 
 }
+
+*/
