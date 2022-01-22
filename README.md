@@ -138,3 +138,18 @@ JPA
 * 트랜잭션 스크립트 패턴
 
 > 엔티티가 비즈니스 로직이 거의 없고 서비스 계층에서 대부분의 비즈니스 로직을 처리하는 것
+
+
+## API
+
+* api를 사용할 때 Entity를 전달해서는 안된다.
+
+* DTO(Data Transfer Object)를 사용해서 전달
+
+## Validation
+
+* @NotNull, @NotEmpty, @NotBlank
+
+> DTO에서 값을 받을 때 해당 요청의 parameter에 따라 오류 메시지와 조건을 제공하는 Annotation
+
+
