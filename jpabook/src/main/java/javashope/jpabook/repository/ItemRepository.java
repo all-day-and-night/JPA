@@ -19,7 +19,7 @@ public class ItemRepository {
      * item의 id가 이미 db에 있다면 merge
      * @param item
      */
-    public void sava(Item item){
+    public void save(Item item){
         if (item.getId() == null) {
             em.persist(item);
         } else{
