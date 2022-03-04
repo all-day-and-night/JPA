@@ -3,14 +3,15 @@ package jpabook.jpashop.api;
 
 import jpabook.jpashop.domain.Member;
 import jpabook.jpashop.service.MemberService;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -50,6 +51,68 @@ public class MemberApiController {
         return new CreateMemberResponse(id);
     }
 
+
+    /**
+     * 회원수정 api
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @PutMapping("api/v2/members/{id}")
+    public UpdateMemberResponse updateMemberV2(
+            @PathVariable("id") Long id,
+            @RequestBody @Valid UpdateMemberRequest request){
+
+        memberService.update(id, request.getName());
+        Member findMember = memberService.findOne(id);
+        return new UpdateMemberResponse(findMember.getId(), findMember.getName());
+
+
+    }
+
+    /**
+     * 회원 전체 조회 api
+     *
+     * 문제는 memberService의 리턴값이 Entity list인데 전부 외부로 노출된다
+     *
+     * @return
+     */
+    @GetMapping("api/v1/members")
+    public List<Member> membersV1(){
+        return memberService.findMembers();
+    }
+
+    @GetMapping("api/v2/members")
+    public Result memberV2(){
+        List<Member> findMembers = memberService.findMembers();
+        List<MemberDto> collect = findMembers.stream()
+                .map(m -> new MemberDto(m.getName()))
+                .collect(Collectors.toList());
+        return new Result(collect);
+    }
+
+    /**
+     * json 형식의 데이터의 "확장성"을 위해 사용해야 한다.
+     *
+     * wrapper class
+     *
+     * @param <T>
+     */
+    @Data
+    @AllArgsConstructor
+    static class Result<T> {
+        private T data;
+    }
+
+    /**
+     * 노출할 데이터만 특정하여 전달하도록 설계계     */
+    @Data
+    @AllArgsConstructor
+    static class MemberDto{
+        private String name;
+    }
+
     @Data
     static class CreateMemberRequest{
         @NotEmpty
@@ -64,4 +127,19 @@ public class MemberApiController {
             this.id = id;
         }
     }
+
+    @Data
+    static class UpdateMemberRequest{
+        private String name;
+    }
+
+    @Data
+    @AllArgsConstructor
+    static class UpdateMemberResponse{
+        private Long id;
+        private String name;
+    }
+
+
+
 }
