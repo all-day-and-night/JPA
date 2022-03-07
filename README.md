@@ -210,8 +210,135 @@ JPA
 > 중요한 것은 DTO(Data Transfer Object)를 사용하여 json을 리턴하고 entity를 외부로 노출하지 않는 것이 중요하다.
 
 
+## 지연 로딩과 조회 성능 최적화 
 
 
+* ex)
+
+ + xToOne(ManyToOne, OneToOne)
+ + Order
+ + Order -> Member
+ + Order -> Delivery
+
+> 관계형 db에서는 서로가 외래키로 계속해서 참조하기 때문에 문제가 생긴다(무한 루프)
+
+> 때문에 json 형태로 리턴할 경우 DB의 참조되어있는 관계에 명시적으로 JsonIgnore를 사용해야 한다.
+
+* 지연로딩을 사용할 경우 연관 관계에 있는 모든 데이터를 조회하지 않지만, Proxy를 사용하지 않을 경우 문제가 생긴다
+
+> 여기서는 hibernate5Module를 사용하여 해결했다.(Entity를 api 외부로 노출하는 것은 좋은 방법이 아니므로 DTO로 변환해서 리턴할 것이다.)
+
+> api로 order 테이블을 조회할 경우 지연 로딩이기 때문에 참조되어 있는 객체는 null로 출력된다.
+
+> 강제로 query 문을 실행하여 Lazy 강제 초기화 할 수 있다.
+
+```
+@GetMapping("/api/v1/simple-orders")
+    public List<Order> ordersV1(){
+        List<Order> all = orderRepository.findAllByString(new OrderSearch());
+        for (Order order : all){
+            order.getMember().getName(); // Lazy 강제 초기화
+            order.getDelivery().getAddress(); // Lazy 강제 초기화
+        }
+
+        return all;
+    }
+```
+
+* 엔티티를 DTO로 변환
+
+```
+@GetMapping("api/v2/simple-orders")
+    public List<SimpleOrderDto> ordersV2(){
+        return orderRepository.findAllByString(new OrderSearch()).stream()
+                .map(SimpleOrderDto::new)
+                .collect(Collectors.toList());
+    }
+
+@Data
+    static class SimpleOrderDto{
+        private Long orderId;
+        private String name;
+        private LocalDateTime orderDate;
+        private OrderStatus orderStatus;
+        private Address address;
+
+        public SimpleOrderDto(Order order){
+            orderId = order.getId();
+            name = order.getMember().getName(); // Lazy 초기화
+            orderDate = order.getOrderDate();
+            orderStatus = order.getStatus();
+            address = order.getDelivery().getAddress(); // Lazy 초기화
+        }
+    }
+```
+
+> 이 때 최악의 경우 N+1의 문제가 발생하는데 1번의 쿼리가 실행되면 참조되어 있던 다른 테이블을 쿼리문을 실행하여 조회하기 때문에 추가적인 쿼리가 발생한다.
+
+> 지연로딩은 영속성 컨텍스트에서 조회하므로, 이미 조회된 경우 쿼리를 생략한다.
+
+* fetch join 최적화(진짜 너무 강조해도 부족함이 없는 부분이다)
+
+ + 주문 조회
+
+```
+public List<Order> findAllWithMemberDelivery() {
+        List<Order> resultList = em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class
+        ).getResultList();
+        return resultList;
+    }
+}
+```
+> 다른 테이블을 참조하는 방식을 사용하지 않고 fetch join을 사용하여 한번의 쿼리문으로 모든 데이터를 가져온다
+
+> DTO를 사용하더라도 이미 영속성 컨텍스트에서 조회됐기 때문에 추가적인 쿼리를 생략한다.
+
+
+* 바로 DTO로 변환
+```
+// 조회한 결과 바로 dto로 변환
+public List<OrderSimpleQueryDto> findOrderDtos() {
+        return em.createQuery("select new jpabook.jpashop.repository.OrderSimpleQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
+                    " from Order o" +
+                    " join o.member m" +
+                    " join o.delivery d", OrderSimpleQueryDto.class)
+                .getResultList();
+    }
+
+
+// dto
+@Data
+public class OrderSimpleQueryDto {
+    private Long orderId;
+    private String name;
+    private LocalDateTime orderDate;
+    private OrderStatus orderStatus;
+    private Address address;
+
+    public OrderSimpleQueryDto(Long orderId, String name, LocalDateTime orderDate, OrderStatus orderStatus, Address address){
+        this.orderId = orderId;
+        this.name = name;
+        this.orderDate = orderDate;
+        this.orderStatus = orderStatus;
+        this.address = address;
+    }
+}
+```
+
+> 바로 위의 두가지 방법은 우열을 가리기 힘들 정도로 최적화 속도가 비슷하다.(쿼리문을 직접 쓰는 것이 미세하게 더 빠르다)
+
+> 둘중에 logic을 수정하기 편하다는 점의 차이나 코드상의 깔끔한 점을 비교하여 선택하면 된다.
+
+
+* 쿼리 방식 선택 권장순서
+
+1. 우선 엔티티를 DTO로 변환하는 방법을 선택한다.
+2. 필요하면 fetch join으로 성능을 최적화 한다. -> 대부분의 성능 이슈가 해결된다.
+3. 그래도 안되면 DTO로 직접 조회하는 방법을 사용한다.
+4. 최후의 방법은 JPA가 제공하는 네이티브 SQL이나 스프링 JDBC Template를 사용해서 SQL을 직접 사용한다.
 
 
 
