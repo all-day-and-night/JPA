@@ -197,6 +197,22 @@ JPA
 
 
 
+# API 구현 및 성능 최적화
+
+* API 구현
+
+1. 회원 조회 API
+
+2. 회원 수정 API
+
+3. 회원 등록 API
+
+> 중요한 것은 DTO(Data Transfer Object)를 사용하여 json을 리턴하고 entity를 외부로 노출하지 않는 것이 중요하다.
+
+
+
+
+
 
 
 
