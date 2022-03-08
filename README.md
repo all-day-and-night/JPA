@@ -341,6 +341,88 @@ public class OrderSimpleQueryDto {
 4. 최후의 방법은 JPA가 제공하는 네이티브 SQL이나 스프링 JDBC Template를 사용해서 SQL을 직접 사용한다.
 
 
+## Collection 최적화
+
+> 위 문제는 OneToOne, ManyToOne의 관계만 있었고 
+
+> 이번에 다룰 문제는 OneToMany의 관계에서 컬렉션을 조회하고 최적화하는 방법을 알아볼 것이다.
+
+
+* Worst version
+```
+@GetMapping("/api/v1/orders")
+    public List<Order> ordersV1(){
+        List<Order> all = orderRepository.findAllByString(new OrderSearch());
+        for (Order order: all){
+            order.getMember().getName();
+            order.getDelivery().getAddress();
+            List<OrderItem> orderItems = order.getOrderItems();
+            for (OrderItem orderItem : orderItems){
+                orderItem.getItem().getName();
+            }
+        }
+        return all;
+    }
+```
+
+> 1 대 다의 관계에서 위와 같이 api를 설계할 경우 하나의 데이터를 받을 때 여러 데이터와 연결되어 있는 테이블을 조회하기 때문에 수 많은 query가 생성된다.
+
+* Dto에 담아서 변환
+
+```
+@GetMapping("/api/v2/orders")
+    public List<OrderDto> ordersV2(){
+        List<Order> orders = orderRepository.findAllByString(new OrderSearch());
+        List<OrderDto> collect = orders.stream()
+                .map(o -> new OrderDto(o))
+                .collect(Collectors.toList());
+        return collect;
+    }
+
+    @Getter
+    static class OrderDto{
+        private Long orderId;
+        private String name;
+        private LocalDateTime orderDate;
+        private OrderStatus orderStatus;
+        private Address address;
+        private List<OrderItemDto> orderItems;
+
+
+        public OrderDto(Order order){
+            orderId = order.getId();
+            name = order.getMember().getName();
+            orderDate = order.getOrderDate();
+            orderStatus = order.getStatus();
+            address = order.getDelivery().getAddress();
+            orderItems = order.getOrderItems().stream()
+                    .map(orderItem -> new OrderItemDto(orderItem))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    @Getter
+    static class OrderItemDto{
+
+        private String itemName;
+        private int orderPrice;
+        private int count;
+
+        public OrderItemDto(OrderItem orderItem){
+            itemName = orderItem.getItem().getName();
+            orderPrice = orderItem.getOrderPrice();
+            count = orderItem.getCount();
+        }
+    }
+```
+
+> 조회할 데이터를 Dto로 변환할 때 주의할 점은 1 대 다의 관계를 가지고 있는 데이터를 다시 참조할 때 
+
+> 그 데이터 역시 entity가 아니라 Dto로 변환해주어야 한다.
+
+> 하지만 여전히 N+1의 문제는 해결되지 않았기 때문에 fetch join을 통해 최적화를 해보자
+
+* fetch join
 
 
 
