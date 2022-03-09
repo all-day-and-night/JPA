@@ -424,6 +424,89 @@ public class OrderSimpleQueryDto {
 
 * fetch join
 
+```
+//
+@GetMapping("/api/v3/orders")
+    public List<OrderDto> orderV3(){
+        List<Order> orders = orderRepository.findAllWithItem();
+        List<OrderDto> collect = orders.stream()
+                .map(o -> new OrderDto(o))
+                .collect(Collectors.toList());
+        return collect;
+    }
+   
+//distinct로 중복을 날려주고 추가적인 쿼리문을 생성하지 않고 데이터를 가져온다
+public List<Order> findAllWithItem() {
+        return em.createQuery(
+                "select distinct o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.orderItems oi" +
+                        " join fetch oi.item i", Order.class)
+                .getResultList();
+    }
+```
+> fetch join으로 sql이 한번만 실행된다 또한 distinct로 중복을 제거한다.
+
+> 하지만 paging(특정 범위만 가져오는 것)이 불가능하다.
+
+> 따라서 1대 다의 관계에서 컬렉션 페치 조인은 1개만 사용하는 것을 추천한다. 
+
+
+* 페치 조인 한계 돌파
+
+> 우선 ToOne(OneToOne, ManyToOne)관계에서는 fetch join을 사용해도 괜찮다.
+
+> OneToMany의 경우 문제가 생길 가능성이 있기 때문에 다음과 같은 해결책을 사용한다.
+
+1. 컬렉션은 지연 로딩으로 조회한다.(fetch=lazy)
+
+2. 지연 로딩 성능 최적화를 위해 hibernate.default_batch_fetch_size(global setting), @BatchSize(개별 최적화)를 적용한다.
+
+> hibernate.default_batch_fetch_size(global setting)는 application.yml 파일에 설정하면 된다.
+
+```
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+#        show_sql: true
+        format_sql: true
+        default_batch_fetch_size: 100
+```
+
+> @BatchSize는 OneToMany의 관계에 있는 entity에 @BatchSize를 붙여주면 된다.(컬렉션은 컬렉션 필드에 엔티티는 엔티티 클래스에 적용)
+
+> 이러한 옵션을 사용하면 컬렉션이나 프록시 객체를 한꺼번에 설정한 size만큼 in query로 조회한다.
+
+> 1대 다의 관계의 데이터를 가져오기 위한 쿼리 호출이 1 + N -> 1 + 1로 최적화되고
+
+> 조인 보다 DB 데이터 전송량이 최적화 된다.
+
+> 또한 paging도 가능하다.
+
+> batch size는 100 ~ 1000 사이를 선택하는 것을 권장한다.
+
+* 이후에는 DTO로 변환해서 데이터를 조회하고 리턴하는 함수를 구현할 것이다.
+
+> OneToMany의 관계일 때 Many의 관계에서 따로 DTO를 구현해야 한다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
