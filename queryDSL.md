@@ -111,7 +111,12 @@ QueryDSL
 
 - 대량의 데이터를 일괄로 Update 처리시 
 
+> 진짜 Entity가 필요한게 아니라면 QueryDsl과 Dto를 통해 딱 필요한 항목들만 조회하고 업데이트한다. 
 
+
+* Bulk Insert 
+
+> Bulk Insert는 JPA에서 성능이 굉장히 낮기 때문에 사용을 지양한다.
 
 
 
